@@ -24,6 +24,7 @@ from .tech import Tech
 _LOGGER = logging.getLogger(__name__)
 
 SUPPORT_HVAC: Final = [HVACMode.HEAT, HVACMode.OFF]
+DEFAULT_PRESETS = ["Normalny", "Urlop", "Ekonomiczny", "Komfortowy"]
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -57,7 +58,7 @@ class TechThermostat(ClimateEntity):
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = SUPPORT_HVAC
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-    _attr_preset_modes = ["Normalny", "Urlop", "Ekonomiczny", "Komfortowy"]
+    _attr_preset_modes = 
 
     def __init__(self, device: dict[str, Any], api: Tech, udid: str, menu_config: dict[str, Any] | None) -> None:
         """Initialize the Tech device."""
@@ -111,9 +112,14 @@ class TechThermostat(ClimateEntity):
         
         heating_mode = self.get_heating_mode_from_menu_config(device_menu_config) if device_menu_config else None
 
-        if heating_mode is not None:            
-            heating_mode_id = heating_mode["params"]["value"]
-            self._attr_preset_mode = self.map_heating_mode_id_to_name(heating_mode_id)
+        if heating_mode is not None:
+            if heating_mode["duringChange"] == "t":
+                self._attr_preset_modes = ["Oczekiwanie na zmianę"]
+                self._attr_preset_mode = "Oczekiwanie na zmianę"
+            else:
+                self._attr_preset_modes = DEFAULT_PRESETS
+                heating_mode_id = heating_mode["params"]["value"]
+                self._attr_preset_mode = self.map_heating_mode_id_to_name(heating_mode_id)
         else:
             _LOGGER.warning("Heating mode menu not found for Tech zone %s", self._attr_name)
 
@@ -143,6 +149,23 @@ class TechThermostat(ClimateEntity):
                     temperature,
                     ex
                 )
+    
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        try:
+            preset_mode_id = DEFAULT_PRESETS.index(preset_mode)
+            await self._api.set_module_menu(
+                self._udid,
+                "mu",
+                1000,
+                preset_mode_id
+            )
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to set preset mode for %s to %s: %s",
+                self._attr_name,
+                preset_mode,
+                ex
+            )
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target hvac mode."""
