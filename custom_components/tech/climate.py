@@ -123,11 +123,10 @@ class TechThermostat(ClimateEntity):
             device = await self._api.get_zone(self._udid, self._id)
             menu_config = await self._api.get_module_menu(self._udid, "mu")
             if(menu_config["status"] == "success"):                
-                self.update_properties(device, menu_config["data"])
+                self.update_properties(device, menu_config["data"])                
             else:
-                _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", self._udid, menu_config)
-            
-            self.update_properties(device, None)
+                _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", self._udid, menu_config)            
+                self.update_properties(device, None)
         except Exception as ex:
             _LOGGER.error("Failed to update Tech zone %s: %s", self._attr_name, ex)
 
