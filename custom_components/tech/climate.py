@@ -58,7 +58,7 @@ class TechThermostat(ClimateEntity):
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = SUPPORT_HVAC
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-    _attr_preset_modes = 
+    _attr_preset_modes = DEFAULT_PRESETS
 
     def __init__(self, device: dict[str, Any], api: Tech, udid: str, menu_config: dict[str, Any] | None) -> None:
         """Initialize the Tech device."""
