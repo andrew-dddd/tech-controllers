@@ -153,7 +153,7 @@ class TechThermostat(ClimateEntity):
     
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         try:
-            if self._attr.preset_mode == CHANGE_PRESET:
+            if self._attr_preset_mode == CHANGE_PRESET:
                 _LOGGER.debug("Preset mode change already in progress for %s", self._attr_name)
                 return
             
