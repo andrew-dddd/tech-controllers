@@ -57,7 +57,7 @@ class TechThermostat(ClimateEntity):
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = SUPPORT_HVAC
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-    _attr_preset_modes = ["Normal", "Holiday", "Eco", "Comfort"]
+    _attr_preset_modes = ["Normalny", "Urlop", "Ekonomiczny", "Komfortowy"]
 
     def __init__(self, device: dict[str, Any], api: Tech, udid: str, menu_config: dict[str, Any] | None) -> None:
         """Initialize the Tech device."""
@@ -173,9 +173,9 @@ class TechThermostat(ClimateEntity):
     def map_heating_mode_id_to_name(self, heating_mode_id) -> str:
         """Map heating mode id to preset mode name."""
         mapping = {
-            0: "Normal",
-            1: "Holiday",
-            2: "Eco",
-            3: "Comfort"
+            0: "Normalny",
+            1: "Urlop",
+            2: "Ekonomiczny",
+            3: "Komfortowy"
         }
         return mapping.get(heating_mode_id, "Unknown")
