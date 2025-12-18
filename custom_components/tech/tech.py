@@ -142,8 +142,8 @@ class Tech:
         """
         _LOGGER.debug("Setting zone constant temperature...")
         if self.authenticated:
-            path = "users/" + self.user_id + "/modules/" + module_udid + "/zones"
-            _LOGGER.debug("Path: " + path);
+            path = f"users/{self.user_id}/modules/{module_udid}/zones"
+            _LOGGER.debug("Path: " + path)
             data = {
                 "mode" : {
                     "id" : self.zones[zone_id]["mode"]["id"],
@@ -173,7 +173,7 @@ class Tech:
         """
         _LOGGER.debug("Turing zone on/off: %s", on)
         if self.authenticated:
-            path = "users/" + self.user_id + "/modules/" + module_udid + "/zones"
+            path = f"users/{self.user_id}/modules/{module_udid}/zones"
             data = {
                 "zone" : {
                     "id" : zone_id,
@@ -199,7 +199,7 @@ class Tech:
 
         _LOGGER.debug("Getting module menu: %s", menu_type)
         if self.authenticated:
-            path = "users/" + self.user_id + "/modules/" + module_udid + "/menu/" + menu_type
+            path = f"users/{self.user_id}/modules/{module_udid}/menu/{menu_type}"
             result = await self.get(path)       
         else:
             raise TechError(401, "Unauthorized")
@@ -217,7 +217,7 @@ class Tech:
 
         _LOGGER.debug("Setting menu %s id: %s value to: %s", menu_type, menu_id, menu_value)
         if self.authenticated:
-            path = "users/" + self.user_id + "/modules/" + module_udid + "/menu/" + menu_type + "/ido/" + menu_id
+            path = f"users/{self.user_id}/modules/{module_udid}/menu/{menu_type}/id/{menu_id}"
             data = {
                 "value": menu_value
             }
