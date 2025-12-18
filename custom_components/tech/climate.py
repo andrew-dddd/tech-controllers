@@ -25,6 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 
 SUPPORT_HVAC: Final = [HVACMode.HEAT, HVACMode.OFF]
 DEFAULT_PRESETS = ["Normalny", "Urlop", "Ekonomiczny", "Komfortowy"]
+CHANGE_PRESET = "Oczekiwanie na zmianę"
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -114,8 +115,8 @@ class TechThermostat(ClimateEntity):
 
         if heating_mode is not None:
             if heating_mode["duringChange"] == "t":
-                self._attr_preset_modes = ["Oczekiwanie na zmianę"]
-                self._attr_preset_mode = "Oczekiwanie na zmianę"
+                self._attr_preset_modes = [CHANGE_PRESET]
+                self._attr_preset_mode = CHANGE_PRESET
             else:
                 self._attr_preset_modes = DEFAULT_PRESETS
                 heating_mode_id = heating_mode["params"]["value"]
@@ -152,6 +153,10 @@ class TechThermostat(ClimateEntity):
     
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         try:
+            if self._attr.preset_mode == CHANGE_PRESET:
+                _LOGGER.debug("Preset mode change already in progress for %s", self._attr_name)
+                return
+            
             preset_mode_id = DEFAULT_PRESETS.index(preset_mode)
             await self._api.set_module_menu(
                 self._udid,
@@ -159,6 +164,8 @@ class TechThermostat(ClimateEntity):
                 1000,
                 preset_mode_id
             )
+            self._attr_preset_modes = [CHANGE_PRESET]
+            self._attr_preset_mode = CHANGE_PRESET
         except Exception as ex:
             _LOGGER.error(
                 "Failed to set preset mode for %s to %s: %s",
