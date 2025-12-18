@@ -217,7 +217,7 @@ class Tech:
 
         _LOGGER.debug("Setting menu %s id: %s value to: %s", menu_type, menu_id, menu_value)
         if self.authenticated:
-            path = f"users/{self.user_id}/modules/{module_udid}/menu/{menu_type}/id/{menu_id}"
+            path = f"users/{self.user_id}/modules/{module_udid}/menu/{menu_type}/ido/{menu_id}"
             data = {
                 "value": menu_value
             }
