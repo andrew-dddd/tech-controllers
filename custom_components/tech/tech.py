@@ -143,6 +143,7 @@ class Tech:
         _LOGGER.debug("Setting zone constant temperature...")
         if self.authenticated:
             path = "users/" + self.user_id + "/modules/" + module_udid + "/zones"
+            _LOGGER.debug("Path: " + path);
             data = {
                 "mode" : {
                     "id" : self.zones[zone_id]["mode"]["id"],
@@ -181,6 +182,48 @@ class Tech:
                 }
             }
             _LOGGER.debug(data)
+            result = await self.post(path, json.dumps(data))
+            _LOGGER.debug(result)
+        else:
+            raise TechError(401, "Unauthorized")
+        return result
+
+    async def get_module_menu(self, module_udid, menu_type):
+        """ Gets module menu options
+       
+        Parameters:
+        module_udid (string): The tech module udid
+        menu_type (string): Menu type, one of the following: "MU", "MI", "MS", "MP"
+
+        Return:
+        JSON object with results
+        """
+
+        _LOGGER.debug("Getting module menu: %s", menu_type)
+        if self.authenticated:
+            path = "users/" + self.user_id + "/modules/" + module_udid + "/menu/" + menu_type
+            result = await self.get(path)
+            _LOGGER.debug(result)
+        else:
+            raise TechError(401, "Unauthorized")
+        return result
+
+    async def set_module_menu(self, module_udid, menu_type, menu_id, menu_value):
+        """ Sets module menu value
+
+        Parameters:
+        module_udid (string): The tech module udid
+        menu_type (string): Menu type, one of the following: "MU", "MI", "MS", "MP"
+        menu_id (integer): Menu option id, integer
+        menu_value (integer): Menu option value, positive integ
+        """
+
+        _LOGGER.debug("Setting menu %s id: %s value to: %s", menu_type, menu_id, menu_value)
+        if self.authenticated:
+            path = "users/" + self.user_id + "/modules/" + module_udid + "/menu/" + menu_type + "/ido/" + menu_id
+            data = {
+                "value": menu_value
+            }
             result = await self.post(path, json.dumps(data))
             _LOGGER.debug(result)
         else:

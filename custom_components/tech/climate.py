@@ -36,8 +36,12 @@ async def async_setup_entry(
     
     try:
         zones = await api.get_module_zones(udid)
+        menu_config = await api.get_module_menu(udid, "mu")
+        if(menu_config["status"] != "success"):
+            _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", udid, menu_config)
+            menu_config = None
         async_add_entities(
-            TechThermostat(zones[zone], api, udid)
+            TechThermostat(zones[zone], api, udid, menu_config["data"] if menu_config else None)
             for zone in zones
         )
         return True
@@ -52,8 +56,9 @@ class TechThermostat(ClimateEntity):
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = SUPPORT_HVAC
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+    _attr_preset_modes = ["Normal", "Holiday", "Eco", "Comfort"]
 
-    def __init__(self, device: dict[str, Any], api: Tech, udid: str) -> None:
+    def __init__(self, device: dict[str, Any], api: Tech, udid: str, menu_config: dict[str, Any] | None) -> None:
         """Initialize the Tech device."""
         self._api = api
         self._id: int = device["zone"]["id"]
@@ -74,10 +79,11 @@ class TechThermostat(ClimateEntity):
         self._attr_current_humidity: int | None = None
         self._attr_hvac_action: str | None = None
         self._attr_hvac_mode: str = HVACMode.OFF
+        self._attr_preset_mode: str | None = None
         
-        self.update_properties(device)
+        self.update_properties(device, menu_config)
 
-    def update_properties(self, device: dict[str, Any]) -> None:
+    def update_properties(self, device: dict[str, Any], device_menu_config: dict[str, Any] | None) -> None:
         """Update the properties from device data."""
         self._attr_name = device["description"]["name"]
         
@@ -97,16 +103,28 @@ class TechThermostat(ClimateEntity):
         elif state == "off":
             self._attr_hvac_action = HVACAction.IDLE
         else:
-            self._attr_hvac_action = HVACAction.OFF
-            
+            self._attr_hvac_action = HVACAction.OFF        
+        
         mode = zone["zoneState"]
         self._attr_hvac_mode = HVACMode.HEAT if mode in ["zoneOn", "noAlarm"] else HVACMode.OFF
+        
+        heating_mode = self.get_heating_mode_from_menu_config(device_menu_config) if device_menu_config else None
+
+        if heating_mode is not None:
+            heating_mode_id = heating_mode["params"]["value"]
+            self._attr_preset_mode = self.map_heating_mode_id_to_name(heating_mode_id)
 
     async def async_update(self) -> None:
         """Update the entity."""
         try:
             device = await self._api.get_zone(self._udid, self._id)
-            self.update_properties(device)
+            menu_config = await self._apy.get_module_menu(self._udid, "mu")
+            if(menu_config["status"] == "success"):                
+                self.update_properties(device, menu_config["data"])
+            else:
+                _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", self._udid, menu_config)
+            
+            self.update_properties(device, None)
         except Exception as ex:
             _LOGGER.error("Failed to update Tech zone %s: %s", self._attr_name, ex)
 
@@ -139,3 +157,23 @@ class TechThermostat(ClimateEntity):
                 hvac_mode,
                 ex
             )
+    
+    def get_heating_mode_from_menu_config(self, menu_config: dict[str, Any]) -> dict[str, Any] | None:
+        """Get current preset mode from menu config."""
+        element = None
+        heating_mode_menu_id = 1000
+        for e in menu_config["data"]["elements"]:
+            if e["id"] == heating_mode_menu_id:
+                element = e
+                break   
+        return element
+    
+    def map_heating_mode_id_to_name(self, heating_mode_id) -> str:
+        """Map heating mode id to preset mode name."""
+        mapping = {
+            0: "Normal",
+            1: "Holiday",
+            2: "Eco",
+            3: "Comfort"
+        }
+        return mapping.get(heating_mode_id, "Unknown")
