@@ -8,7 +8,7 @@ from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
-    HVACAction,
+    HVACAction    
 )
 from homeassistant.const import (
     ATTR_TEMPERATURE,
@@ -37,9 +37,10 @@ async def async_setup_entry(
     try:
         zones = await api.get_module_zones(udid)
         menu_config = await api.get_module_menu(udid, "mu")
-        if(menu_config["status"] != "success"):
+        if menu_config["status"] != "success":
             _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", udid, menu_config)
             menu_config = None
+        
         async_add_entities(
             TechThermostat(zones[zone], api, udid, menu_config["data"] if menu_config else None)
             for zone in zones
@@ -110,15 +111,17 @@ class TechThermostat(ClimateEntity):
         
         heating_mode = self.get_heating_mode_from_menu_config(device_menu_config) if device_menu_config else None
 
-        if heating_mode is not None:
+        if heating_mode is not None:            
             heating_mode_id = heating_mode["params"]["value"]
             self._attr_preset_mode = self.map_heating_mode_id_to_name(heating_mode_id)
+        else:
+            _LOGGER.warning("Heating mode menu not found for Tech zone %s", self._attr_name)
 
     async def async_update(self) -> None:
         """Update the entity."""
         try:
             device = await self._api.get_zone(self._udid, self._id)
-            menu_config = await self._apy.get_module_menu(self._udid, "mu")
+            menu_config = await self._api.get_module_menu(self._udid, "mu")
             if(menu_config["status"] == "success"):                
                 self.update_properties(device, menu_config["data"])
             else:
@@ -162,7 +165,7 @@ class TechThermostat(ClimateEntity):
         """Get current preset mode from menu config."""
         element = None
         heating_mode_menu_id = 1000
-        for e in menu_config["data"]["elements"]:
+        for e in menu_config["elements"]:
             if e["id"] == heating_mode_menu_id:
                 element = e
                 break   

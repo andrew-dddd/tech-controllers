@@ -203,7 +203,7 @@ class Tech:
         if self.authenticated:
             path = "users/" + self.user_id + "/modules/" + module_udid + "/menu/" + menu_type
             result = await self.get(path)
-            _LOGGER.debug(result)
+            _LOGGER.debug(result)            
         else:
             raise TechError(401, "Unauthorized")
         return result

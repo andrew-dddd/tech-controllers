@@ -80,14 +80,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data=module,
             title=module["version"],
             entry_id=uuid.uuid4().hex,
-	    discovery_keys=MappingProxyType({}),
+	        discovery_keys=MappingProxyType({}),
             domain=DOMAIN,
             version=ConfigFlow.VERSION,
             minor_version=ConfigFlow.MINOR_VERSION,
             source=ConfigFlow.CONNECTION_CLASS,
-	    options={},
+	        options={},
             unique_id=None,
-	    subentries_data=[])
+	        subentries_data=[])
     
     def _create_modules_array(self, validated_input: dict) -> [dict]:
         return [
