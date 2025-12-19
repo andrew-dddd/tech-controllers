@@ -45,7 +45,7 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
         """Return the latest zones data."""
         return self.data["zones"]
     
-    def get_menu(self) -> dict[str, Any]:
+    def get_menu(self) -> dict[str, Any] | None:
         """Return the latest menu data."""
         return self.data["menu"]
 
@@ -70,7 +70,8 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
                     _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", self.udid, menu)
                     menu = None
 
-                self.data = {"zones": zones, "menu": menu["data"] if menu else None}                            
+                self.data = {"zones": zones, "menu": menu["data"] if menu else None}
+                return self.data                            
         except TechError as err:
             # Raising ConfigEntryAuthFailed will cancel future updates
             # and start a config flow with SOURCE_REAUTH (async_step_reauth)            
