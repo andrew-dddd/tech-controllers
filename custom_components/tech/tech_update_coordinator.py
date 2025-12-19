@@ -25,14 +25,10 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name="My sensor",
+            name= f"Tech module coordinator: {udid}",
             config_entry=config_entry,
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=30),
-            # Set always_update to `False` if the data returned from the
-            # api can be compared via `__eq__` to avoid duplicate updates
-            # being dispatched to listeners
-            always_update=True
+            update_interval=timedelta(seconds=32),
         )
         self.tech_api = tech_api
         self.udid: str = udid

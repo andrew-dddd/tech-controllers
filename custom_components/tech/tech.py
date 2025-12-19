@@ -6,6 +6,7 @@ import aiohttp
 import json
 import time
 import asyncio
+from aiocache import Cache, cached
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -15,14 +16,13 @@ class Tech:
 
     TECH_API_URL = "https://emodul.eu/api/v1/"
 
-    def __init__(self, session: aiohttp.ClientSession, user_id = None, token = None, base_url = TECH_API_URL, update_interval = 30):
+    def __init__(self, session: aiohttp.ClientSession, user_id = None, token = None, base_url = TECH_API_URL):
         _LOGGER.debug("Init Tech")
         self.headers = {
             'Accept': 'application/json',
             'Accept-Encoding': 'gzip'
         }
         self.base_url = base_url
-        self.update_interval = update_interval
         self.session = session
         if user_id and token:
             self.user_id = user_id
@@ -31,10 +31,8 @@ class Tech:
             self.authenticated = True
         else:
             self.authenticated = False
-        self.last_update = None
-        self.update_lock = asyncio.Lock()
         self.zones = {}
-
+    
     async def get(self, request_path):
         url = self.base_url + request_path
         _LOGGER.debug("Sending GET request: " + url)
@@ -91,6 +89,7 @@ class Tech:
             raise TechError(401, "Unauthorized")
         return result
     
+    @cached(ttl=10, cache=Cache.MEMORY)
     async def get_module_zones(self, module_udid):
         """Returns Tech module zones either from cache or it will
         update all the cached values for Tech module assuming
@@ -103,17 +102,11 @@ class Tech:
         Returns:
         Dictionary of zones indexed by zone ID.
         """
-        async with self.update_lock:
-            now = time.time()
-            _LOGGER.debug("Geting module zones: now: %s, last_update %s, interval: %s", now, self.last_update, self.update_interval)
-            if self.last_update is None or now > self.last_update + self.update_interval:
-                _LOGGER.debug("Updating module zones cache..." + module_udid)    
-                result = await self.get_module_data(module_udid)
-                zones = result["zones"]["elements"]
-                zones = list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
-                for zone in zones:
-                    self.zones[zone["zone"]["id"]] = zone
-                self.last_update = now
+        result = await self.get_module_data(module_udid)
+        zones = result["zones"]["elements"]
+        zones = list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
+        for zone in zones:
+            self.zones[zone["zone"]["id"]] = zone
         return self.zones
     
     async def get_zone(self, module_udid, zone_id):
@@ -126,8 +119,8 @@ class Tech:
         Returns:
         Dictionary of zone.
         """
-        await self.get_module_zones(module_udid)
-        return self.zones[zone_id]
+        zones = await self.get_module_zones(module_udid)
+        return zones[zone_id]
 
     async def set_const_temp(self, module_udid, zone_id, target_temp):
         """Sets constant temperature of the zone.
@@ -186,6 +179,7 @@ class Tech:
             raise TechError(401, "Unauthorized")
         return result
 
+    @cached(ttl=10, cache=Cache.MEMORY)
     async def get_module_menu(self, module_udid, menu_type):
         """ Gets module menu options
        
