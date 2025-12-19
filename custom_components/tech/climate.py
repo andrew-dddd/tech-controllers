@@ -132,6 +132,7 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""        
+        _LOGGER.debug("Coordinator update for Tech zone %s", self._attr_name)
         self.update_properties(self.coordinator.get_zones()[self._id], self.coordinator.get_menu())
         self.async_write_ha_state()
 
