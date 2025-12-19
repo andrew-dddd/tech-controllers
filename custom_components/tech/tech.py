@@ -105,10 +105,7 @@ class Tech:
         result = await self.get_module_data(module_udid)
         zones = result["zones"]["elements"]
         zones = list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
-        zones_dict = {}
-        for zone in zones:
-            zones_dict[zone["zone"]["id"]] = zone
-        return zones_dict
+        return { zone["zone"]["id"]: zone for zone in zones } 
     
     async def get_zone(self, module_udid, zone_id):
         """Returns zone from Tech API cache.
