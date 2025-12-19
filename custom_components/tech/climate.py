@@ -166,6 +166,9 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
                 preset_mode_id
             )
 
+            self._attr_preset_modes = [CHANGE_PRESET]
+            self._attr_preset_mode = CHANGE_PRESET
+
             await self.coordinator.async_request_refresh()
         except Exception as ex:
             _LOGGER.error(
