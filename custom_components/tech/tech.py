@@ -6,6 +6,13 @@ import aiohttp
 import json
 import time
 import asyncio
+from typing import Type, TypeVar, overload
+from aiocache import Cache, cached
+from pydantic import BaseModel, TypeAdapter
+
+from .models import Module, ModuleData, ModuleMenuResponse, ZoneElement
+
+T = TypeVar("T", bound=BaseModel)
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -15,14 +22,13 @@ class Tech:
 
     TECH_API_URL = "https://emodul.eu/api/v1/"
 
-    def __init__(self, session: aiohttp.ClientSession, user_id = None, token = None, base_url = TECH_API_URL, update_interval = 30):
+    def __init__(self, session: aiohttp.ClientSession, user_id = None, token = None, base_url = TECH_API_URL):
         _LOGGER.debug("Init Tech")
         self.headers = {
             'Accept': 'application/json',
             'Accept-Encoding': 'gzip'
         }
         self.base_url = base_url
-        self.update_interval = update_interval
         self.session = session
         if user_id and token:
             self.user_id = user_id
@@ -31,11 +37,15 @@ class Tech:
             self.authenticated = True
         else:
             self.authenticated = False
-        self.last_update = None
-        self.update_lock = asyncio.Lock()
         self.zones = {}
-
-    async def get(self, request_path):
+    
+    @overload
+    async def get(self, request_path: str) -> dict: ...
+    
+    @overload
+    async def get(self, request_path: str, response_type: Type[T]) -> T: ...
+    
+    async def get(self, request_path: str, response_type: Type[T] | None = None) -> dict | T:
         url = self.base_url + request_path
         _LOGGER.debug("Sending GET request: " + url)
         async with self.session.get(url, headers=self.headers) as response:
@@ -45,6 +55,9 @@ class Tech:
 
             data = await response.json()
             _LOGGER.debug(data)
+            
+            if response_type is not None:
+                return response_type.model_validate(data)
             return data
     
     async def post(self, request_path, post_data):
@@ -74,24 +87,24 @@ class Tech:
             }
         return result["authenticated"]
 
-    async def list_modules(self):
+    async def list_modules(self) -> list[Module]:
         if self.authenticated:
             path = "users/" + self.user_id + "/modules"
             result = await self.get(path)
+            return TypeAdapter(list[Module]).validate_python(result)
         else:
             raise TechError(401, "Unauthorized")
-        return result
     
-    async def get_module_data(self, module_udid):
+    async def get_module_data(self, module_udid) -> ModuleData:
         _LOGGER.debug("Getting module data..." + module_udid + ", " + self.user_id)
         if self.authenticated:
             path = "users/" + self.user_id + "/modules/" + module_udid
-            result = await self.get(path)
+            return await self.get(path, ModuleData)
         else:
             raise TechError(401, "Unauthorized")
-        return result
     
-    async def get_module_zones(self, module_udid):
+    @cached(ttl=10, cache=Cache.MEMORY)
+    async def get_module_zones(self, module_udid) -> dict[int, ZoneElement]:
         """Returns Tech module zones either from cache or it will
         update all the cached values for Tech module assuming
         no update has occurred for at least the [update_interval].
@@ -103,20 +116,12 @@ class Tech:
         Returns:
         Dictionary of zones indexed by zone ID.
         """
-        async with self.update_lock:
-            now = time.time()
-            _LOGGER.debug("Geting module zones: now: %s, last_update %s, interval: %s", now, self.last_update, self.update_interval)
-            if self.last_update is None or now > self.last_update + self.update_interval:
-                _LOGGER.debug("Updating module zones cache..." + module_udid)    
-                result = await self.get_module_data(module_udid)
-                zones = result["zones"]["elements"]
-                zones = list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
-                for zone in zones:
-                    self.zones[zone["zone"]["id"]] = zone
-                self.last_update = now
-        return self.zones
+        result = await self.get_module_data(module_udid)
+        zones = result.zones.elements
+        zones = list(filter(lambda e: e.zone.zoneState != "zoneUnregistered", zones))
+        return { zone.zone.id: zone for zone in zones } 
     
-    async def get_zone(self, module_udid, zone_id):
+    async def get_zone(self, module_udid, zone_id) -> ZoneElement:
         """Returns zone from Tech API cache.
 
         Parameters:
@@ -124,12 +129,12 @@ class Tech:
         zone_id (int): The Tech module zone ID.
 
         Returns:
-        Dictionary of zone.
+        ZoneElement object.
         """
-        await self.get_module_zones(module_udid)
-        return self.zones[zone_id]
+        zones = await self.get_module_zones(module_udid)
+        return zones[zone_id]
 
-    async def set_const_temp(self, module_udid, zone_id, target_temp):
+    async def set_const_temp(self, module_udid, zone_mode_id, zone_id, target_temp):
         """Sets constant temperature of the zone.
         
         Parameters:
@@ -142,10 +147,11 @@ class Tech:
         """
         _LOGGER.debug("Setting zone constant temperature...")
         if self.authenticated:
-            path = "users/" + self.user_id + "/modules/" + module_udid + "/zones"
+            path = f"users/{self.user_id}/modules/{module_udid}/zones"
+            _LOGGER.debug("Path: " + path)
             data = {
                 "mode" : {
-                    "id" : self.zones[zone_id]["mode"]["id"],
+                    "id" : zone_mode_id,
                     "parentId" : zone_id,
                     "mode" : "constantTemp",
                     "constTempTime" : 60,
@@ -155,7 +161,6 @@ class Tech:
             }
             _LOGGER.debug(data)
             result = await self.post(path, json.dumps(data))
-            _LOGGER.debug(result)
         else:
             raise TechError(401, "Unauthorized")
         return result
@@ -173,7 +178,7 @@ class Tech:
         """
         _LOGGER.debug("Turing zone on/off: %s", on)
         if self.authenticated:
-            path = "users/" + self.user_id + "/modules/" + module_udid + "/zones"
+            path = f"users/{self.user_id}/modules/{module_udid}/zones"
             data = {
                 "zone" : {
                     "id" : zone_id,
@@ -182,7 +187,47 @@ class Tech:
             }
             _LOGGER.debug(data)
             result = await self.post(path, json.dumps(data))
-            _LOGGER.debug(result)
+        else:
+            raise TechError(401, "Unauthorized")
+        return result
+
+    @cached(ttl=10, cache=Cache.MEMORY)
+    async def get_module_menu(self, module_udid, menu_type) -> ModuleMenuResponse:
+        """ Gets module menu options
+       
+        Parameters:
+        module_udid (string): The tech module udid
+        menu_type (string): Menu type, one of the following: "MU", "MI", "MS", "MP"
+
+        Return:
+        ModuleMenuResponse object with results
+        """
+
+        _LOGGER.debug("Getting module menu: %s", menu_type)
+        if self.authenticated:
+            path = f"users/{self.user_id}/modules/{module_udid}/menu/{menu_type}"
+            return await self.get(path, ModuleMenuResponse)
+        else:
+            raise TechError(401, "Unauthorized")
+
+    async def set_module_menu(self, module_udid, menu_type, menu_id, menu_value):
+        """ Sets module menu value
+
+        Parameters:
+        module_udid (string): The tech module udid
+        menu_type (string): Menu type, one of the following: "MU", "MI", "MS", "MP"
+        menu_id (integer): Menu option id, integer
+        menu_value (integer): Menu option value, positive integ
+        """
+
+        _LOGGER.debug("Setting menu %s id: %s value to: %s", menu_type, menu_id, menu_value)
+        if self.authenticated:
+            path = f"users/{self.user_id}/modules/{module_udid}/menu/{menu_type}/ido/{menu_id}"
+            data = {
+                "value": menu_value
+            }
+            _LOGGER.debug(data)
+            result = await self.post(path, json.dumps(data))
         else:
             raise TechError(401, "Unauthorized")
         return result
