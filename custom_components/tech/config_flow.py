@@ -77,7 +77,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _create_config_entry(self, module: dict) -> ConfigEntry:
         return ConfigEntry(
-            data=module,
+            data=module,            
             title=module["version"],
             entry_id=uuid.uuid4().hex,
 	        discovery_keys=MappingProxyType({}),

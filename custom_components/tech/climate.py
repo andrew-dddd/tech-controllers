@@ -67,6 +67,7 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         """Initialize the Tech device."""
         self._api = api
         self._id: int = device["zone"]["id"]
+        self._zone_mode_id = device["mode"]["id"]
         self._udid = coordinator.udid
         
         # Set unique_id first as it's required for entity registry

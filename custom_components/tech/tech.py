@@ -104,10 +104,7 @@ class Tech:
         """
         result = await self.get_module_data(module_udid)
         zones = result["zones"]["elements"]
-        zones = list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
-        for zone in zones:
-            self.zones[zone["zone"]["id"]] = zone
-        return self.zones
+        return list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
     
     async def get_zone(self, module_udid, zone_id):
         """Returns zone from Tech API cache.
@@ -122,7 +119,7 @@ class Tech:
         zones = await self.get_module_zones(module_udid)
         return zones[zone_id]
 
-    async def set_const_temp(self, module_udid, zone_id, target_temp):
+    async def set_const_temp(self, module_udid, zone_mode_id, zone_id, target_temp):
         """Sets constant temperature of the zone.
         
         Parameters:
@@ -139,7 +136,7 @@ class Tech:
             _LOGGER.debug("Path: " + path)
             data = {
                 "mode" : {
-                    "id" : self.zones[zone_id]["mode"]["id"],
+                    "id" : zone_mode_id,
                     "parentId" : zone_id,
                     "mode" : "constantTemp",
                     "constTempTime" : 60,
