@@ -6,6 +6,7 @@ from homeassistant.helpers import aiohttp_client
 from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN  # pylint:disable=unused-import
 from .tech import Tech
+from types import MappingProxyType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,13 +77,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _create_config_entry(self, module: dict) -> ConfigEntry:
         return ConfigEntry(
-            data=module,                         
-            title=module["version"], 
+            data=module,            
+            title=module["version"],
             entry_id=uuid.uuid4().hex,
+	        discovery_keys=MappingProxyType({}),
             domain=DOMAIN,
             version=ConfigFlow.VERSION,
             minor_version=ConfigFlow.MINOR_VERSION,
-            source=ConfigFlow.CONNECTION_CLASS)
+            source=ConfigFlow.CONNECTION_CLASS,
+	        options={},
+            unique_id=None,
+	        subentries_data=[])
     
     def _create_modules_array(self, validated_input: dict) -> [dict]:
         return [
