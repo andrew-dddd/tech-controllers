@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 import logging
+from typing import Any
 
 import async_timeout
 
@@ -35,6 +36,18 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
         )
         self.tech_api = tech_api
         self.udid: str = udid
+
+    def get_data(self) -> dict[str, Any]:
+        """Return the latest data."""
+        return self.data
+    
+    def get_zones(self) -> dict[str, Any]:
+        """Return the latest zones data."""
+        return self.data["zones"]
+    
+    def get_menu(self) -> dict[str, Any]:
+        """Return the latest menu data."""
+        return self.data["menu"]
 
     async def _async_update_data(self):
         """Fetch data from API endpoint.
