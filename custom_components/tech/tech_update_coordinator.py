@@ -49,7 +49,8 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
                 # Grab active context variables to limit data required to be fetched from API
                 # Note: using context is not required if there is no need or ability to limit
                 # data retrieved from API.
-                zones = await self.tech_api.get_zones(self.udid)
+                _LOGGER.debug("getting data for module %s", self.udid)
+                zones = await self.tech_api.get_module_zones(self.udid)
                 menu = await self.tech_api.get_module_menu(self.udid, "mu")
 
                 if menu["status"] != "success":
