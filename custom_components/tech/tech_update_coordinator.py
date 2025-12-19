@@ -70,7 +70,7 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
                     _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", self.udid, menu)
                     menu = None
 
-                return {"zones": zones, "menu": menu}
+                self.data = {"zones": zones, "menu": menu}                            
         except TechError as err:
             # Raising ConfigEntryAuthFailed will cancel future updates
             # and start a config flow with SOURCE_REAUTH (async_step_reauth)            
