@@ -40,8 +40,7 @@ async def async_setup_entry(
     api: Tech = hass.data[DOMAIN][entry.entry_id]
     udid: str = entry.data["module"]["udid"]    
     
-    try:
-        zones = await api.get_module_zones(udid)
+    try:        
         menu_config = await api.get_module_menu(udid, "mu")
         if menu_config["status"] != "success":
             _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", udid, menu_config)
@@ -50,6 +49,7 @@ async def async_setup_entry(
         coordinator = TechUpdateCoordinator(hass, entry, api, udid)
         await coordinator._async_update_data()
 
+        zones = coordinator.data['zones']
         async_add_entities(
             TechThermostat(zones[zone], coordinator, api)
             for zone in zones

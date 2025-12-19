@@ -5,6 +5,7 @@ import logging
 
 import async_timeout
 
+from custom_components.tech.tech import (Tech, TechError)
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
@@ -17,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 class TechUpdateCoordinator(DataUpdateCoordinator):
     """My custom coordinator."""
 
-    def __init__(self, hass, config_entry, tech_api, udid):
+    def __init__(self, hass, config_entry, tech_api : Tech, udid):
         """Initialize my coordinator."""
         super().__init__(
             hass,
@@ -56,12 +57,9 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
                     menu = None
 
                 return {"zones": zones, "menu": menu}
-        except ApiAuthError as err:
+        except TechError as err:
             # Raising ConfigEntryAuthFailed will cancel future updates
-            # and start a config flow with SOURCE_REAUTH (async_step_reauth)
+            # and start a config flow with SOURCE_REAUTH (async_step_reauth)            
+            raise UpdateFailed(f"Error communicating with API: {err}")  
+        except Exception as err:
             raise ConfigEntryAuthFailed from err
-        except ApiError as err:
-            raise UpdateFailed(f"Error communicating with API: {err}")
-        except ApiRateLimited as err:
-            # If the API is providing backoff signals, these can be honored via the retry_after parameter
-            raise UpdateFailed(retry_after=60)
