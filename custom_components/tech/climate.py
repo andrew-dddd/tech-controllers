@@ -142,7 +142,7 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is not None:
             try:
-                await self._api.set_const_temp(self._udid, self._id, temperature)
+                await self._api.set_const_temp(self._udid, self._zone_mode_id, self._id, temperature)
                 await self.coordinator.async_request_refresh()
             except Exception as ex:
                 _LOGGER.error(
