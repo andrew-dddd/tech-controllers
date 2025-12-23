@@ -55,9 +55,6 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
             # Note: asyncio.TimeoutError and aiohttp.ClientError are already
             # handled by the data update coordinator.
             async with async_timeout.timeout(10):
-                # Grab active context variables to limit data required to be fetched from API
-                # Note: using context is not required if there is no need or ability to limit
-                # data retrieved from API.
                 _LOGGER.debug("getting data for module %s", self.udid)
                 zones = await self.tech_api.get_module_zones(self.udid)
                 menu = await self.tech_api.get_module_menu(self.udid, "mu")
@@ -68,9 +65,7 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
 
                 self.data = {"zones": zones, "menu": menu["data"] if menu else None}
                 return self.data                            
-        except TechError as err:
-            # Raising ConfigEntryAuthFailed will cancel future updates
-            # and start a config flow with SOURCE_REAUTH (async_step_reauth)            
+        except TechError as err:       
             raise UpdateFailed(f"Error communicating with API: {err}")  
         except Exception as err:
             raise ConfigEntryAuthFailed from err
