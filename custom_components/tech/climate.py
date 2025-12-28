@@ -29,6 +29,8 @@ from .tech import Tech
 _LOGGER = logging.getLogger(__name__)
 
 SUPPORT_HVAC: Final = [HVACMode.HEAT, HVACMode.OFF]
+DEFAULT_PRESETS = ["Normalny", "Urlop", "Ekonomiczny", "Komfortowy"]
+CHANGE_PRESET = "Oczekiwanie na zmianę"
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -50,6 +52,7 @@ async def async_setup_entry(
     except Exception as ex:
         _LOGGER.error("Failed to set up Tech climate: %s", ex)
         return False
+    
 
 
 class TechThermostat(CoordinatorEntity, ClimateEntity):
@@ -57,7 +60,8 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = SUPPORT_HVAC
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+    _attr_preset_modes = DEFAULT_PRESETS
 
     def __init__(self, device: dict[str, Any], coordinator, api: Tech) -> None:
         """Initialize the Tech device."""
@@ -83,10 +87,11 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         self._attr_current_humidity: int | None = None
         self._attr_hvac_action: str | None = None
         self._attr_hvac_mode: str = HVACMode.OFF
+        self._attr_preset_mode: str | None = None
         
         self.update_properties(coordinator.get_zones()[self._id])
 
-    def update_properties(self, device: dict[str, Any]) -> None:
+    def update_properties(self, device: dict[str, Any], device_menu_config: dict[str, Any] | None) -> None:
         """Update the properties from device data."""
         self._attr_name = device["description"]["name"]
         
@@ -132,6 +137,32 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
                     temperature,
                     ex
                 )
+    
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        try:
+            if self._attr_preset_mode == CHANGE_PRESET:
+                _LOGGER.debug("Preset mode change already in progress for %s", self._attr_name)
+                return
+            
+            preset_mode_id = DEFAULT_PRESETS.index(preset_mode)
+            await self._api.set_module_menu(
+                self._udid,
+                "mu",
+                1000,
+                preset_mode_id
+            )
+
+            self._attr_preset_modes = [CHANGE_PRESET]
+            self._attr_preset_mode = CHANGE_PRESET
+
+            await self.coordinator.async_request_refresh()
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to set preset mode for %s to %s: %s",
+                self._attr_name,
+                preset_mode,
+                ex
+            )
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target hvac mode."""
