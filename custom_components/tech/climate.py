@@ -11,6 +11,7 @@ from homeassistant.components.climate import (
     HVACMode,
     HVACAction    
 )
+
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     UnitOfTemperature,
@@ -37,14 +38,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up Tech climate based on config_entry."""
-    api: Tech = hass.data[DOMAIN][entry.entry_id]
-    udid: str = entry.data["module"]["udid"]    
+    api: Tech = hass.data[DOMAIN][entry.entry_id]["api"]
+    coordinator: TechUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
     try:               
-        coordinator = TechUpdateCoordinator(hass, entry, api, udid)
-        await coordinator._async_update_data()
-
         zones = coordinator.get_zones()
+
         async_add_entities(
             TechThermostat(zones[zone], coordinator, api)
             for zone in zones
@@ -54,6 +53,7 @@ async def async_setup_entry(
         _LOGGER.error("Failed to set up Tech climate: %s", ex)
         return False
     
+
 
 class TechThermostat(CoordinatorEntity, ClimateEntity):
     """Representation of a Tech climate."""
@@ -89,7 +89,7 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         self._attr_hvac_mode: str = HVACMode.OFF
         self._attr_preset_mode: str | None = None
         
-        self.update_properties(coordinator.get_zones()[self._id], coordinator.get_menu())
+        self.update_properties(coordinator.get_zones()[self._id])
 
     def update_properties(self, device: dict[str, Any], device_menu_config: dict[str, Any] | None) -> None:
         """Update the properties from device data."""
@@ -115,26 +115,12 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         
         mode = zone["zoneState"]
         self._attr_hvac_mode = HVACMode.HEAT if mode in ["zoneOn", "noAlarm"] else HVACMode.OFF
-        
-        heating_mode = self.get_heating_mode_from_menu_config(device_menu_config) if device_menu_config else None
-
-        if heating_mode is not None:
-            if heating_mode["duringChange"] == "t":
-                self._attr_preset_modes = [CHANGE_PRESET]
-                self._attr_preset_mode = CHANGE_PRESET
-            else:
-                self._attr_preset_modes = DEFAULT_PRESETS
-                heating_mode_id = heating_mode["params"]["value"]
-                self._attr_preset_mode = self.map_heating_mode_id_to_name(heating_mode_id)
-        else:
-            _LOGGER.warning("Heating mode menu not found for Tech zone %s", self._attr_name)
-
     
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""        
         _LOGGER.debug("Coordinator update for zone %s", self._attr_name)
-        self.update_properties(self.coordinator.get_zones()[self._id], self.coordinator.get_menu())
+        self.update_properties(self.coordinator.get_zones()[self._id])
         self.async_write_ha_state()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
@@ -194,23 +180,3 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
                 hvac_mode,
                 ex
             )
-    
-    def get_heating_mode_from_menu_config(self, menu_config: dict[str, Any]) -> dict[str, Any] | None:
-        """Get current preset mode from menu config."""
-        element = None
-        heating_mode_menu_id = 1000
-        for e in menu_config["elements"]:
-            if e["id"] == heating_mode_menu_id:
-                element = e
-                break   
-        return element
-    
-    def map_heating_mode_id_to_name(self, heating_mode_id) -> str:
-        """Map heating mode id to preset mode name."""
-        mapping = {
-            0: "Normalny",
-            1: "Urlop",
-            2: "Ekonomiczny",
-            3: "Komfortowy"
-        }
-        return mapping.get(heating_mode_id, "Unknown")
