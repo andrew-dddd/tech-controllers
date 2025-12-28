@@ -19,9 +19,13 @@ from .tech import Tech
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_PRESETS = ["Normalny", "Urlop", "Ekonomiczny", "Komfortowy"]
+DEFAULT_PRESETS = {
+        0: "Normalny", 
+        1: "Urlop",
+        2: "Ekonomiczny",
+        3: "Komfortowy"
+    }
 CHANGE_PRESET = "Oczekiwanie na zmianę"
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -43,7 +47,7 @@ async def async_setup_entry(
         return False
 
 class TechHub(CoordinatorEntity, SelectEntity):    
-    _attr_options: list[str] = DEFAULT_PRESETS
+    _attr_options: list[str] = list(DEFAULT_PRESETS.values())
     _attr_current_option: str | None = None
 
     def __init__(self, hub, coordinator, api: Tech) -> None:
@@ -85,7 +89,7 @@ class TechHub(CoordinatorEntity, SelectEntity):
                 self._attr_current_option = CHANGE_PRESET
                 _LOGGER.debug("Current preset mode for %s: %s", self._attr_name, self._attr_current_option)
             else:
-                self._attr_options = DEFAULT_PRESETS
+                self._attr_options = list(DEFAULT_PRESETS.values())
                 heating_mode_id = heating_mode["params"]["value"]
                 self._attr_current_option = self.map_heating_mode_id_to_name(heating_mode_id)
                 _LOGGER.debug("Current preset mode for %s: %s", self._attr_name, self._attr_current_option)
@@ -96,9 +100,9 @@ class TechHub(CoordinatorEntity, SelectEntity):
         try:
             if self._attr_current_option == CHANGE_PRESET:
                 _LOGGER.debug("Preset mode change already in progress for %s", self._attr_name)
-                return
+                return            
             
-            preset_mode_id = DEFAULT_PRESETS.index(option)
+            preset_mode_id = list(DEFAULT_PRESETS.values()).index(option)
             await self._api.set_module_menu(
                 self._udid,
                 "mu",
@@ -130,10 +134,4 @@ class TechHub(CoordinatorEntity, SelectEntity):
     
     def map_heating_mode_id_to_name(self, heating_mode_id) -> str:
         """Map heating mode id to preset mode name."""
-        mapping = {
-            0: "Normalny",
-            1: "Urlop",
-            2: "Ekonomiczny",
-            3: "Komfortowy"
-        }
-        return mapping.get(heating_mode_id, "Unknown")
+        return DEFAULT_PRESETS.get(heating_mode_id, "Unknown")
