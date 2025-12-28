@@ -69,6 +69,7 @@ class TechHub(CoordinatorEntity, ClimateEntity):
         """Initialize the Tech Hub device."""
         self._api = api
         self._udid = coordinator.udid
+        self._id = coordinator.udid
         
         # Set unique_id first as it's required for entity registry
         self._attr_unique_id = self._udid
@@ -78,7 +79,7 @@ class TechHub(CoordinatorEntity, ClimateEntity):
             "manufacturer": "Tech",
         }
 
-        super().__init__(coordinator, context=self._id)
+        super().__init__(coordinator, context=self._udid)
         
         # Initialize attributes that will be updated
         self._attr_name: str | None = hub["name"]
