@@ -51,8 +51,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = TechUpdateCoordinator(hass, entry, api, entry.data["module"]["udid"])
     await coordinator._async_update_data()
 
-    hass.data[DOMAIN][entry.entry_id]["api"] = api
-    hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
+    hass.data[DOMAIN][entry.entry_id] = {
+        "api": api,
+        "coordinator": coordinator
+    }
 
     # Use async_forward_entry_setups instead of async_forward_entry_setup
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

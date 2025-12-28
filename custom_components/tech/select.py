@@ -29,7 +29,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up Tech climate based on config_entry."""
-    api: Tech = hass.data[DOMAIN][entry.entry_id]
+    api: Tech = hass.data[DOMAIN][entry.entry_id]["api"]
     coordinator: TechUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
     try:
