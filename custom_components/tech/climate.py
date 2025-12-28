@@ -97,15 +97,19 @@ class TechHub(CoordinatorEntity, SelectEntity):
 
     def update_properties(self, device_menu_config: dict[str, Any] | None) -> None:
         heating_mode = self.get_heating_mode_from_menu_config(device_menu_config) if device_menu_config else None
+        _LOGGER.debug("Updating heating mode for hub %s: %s", self._attr_name, heating_mode)
 
-        if heating_mode is not None:
+        if heating_mode is not None:            
             if heating_mode["duringChange"] == "t":
+                _LOGGER.debug("Preset mode change in progress for %s", self._attr_name)
                 self._attr_options = [CHANGE_PRESET]
                 self._attr_current_option = CHANGE_PRESET
+                _LOGGER.debug("Current preset mode for %s: %s", self._attr_name, self._attr_current_option)
             else:
                 self._attr_options = DEFAULT_PRESETS
                 heating_mode_id = heating_mode["params"]["value"]
                 self._attr_current_option = self.map_heating_mode_id_to_name(heating_mode_id)
+                _LOGGER.debug("Current preset mode for %s: %s", self._attr_name, self._attr_current_option)
         else:
             _LOGGER.warning("Heating mode menu not found for Tech hub %s", self._attr_name)
     
