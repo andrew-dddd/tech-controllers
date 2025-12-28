@@ -91,7 +91,7 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         
         self.update_properties(coordinator.get_zones()[self._id])
 
-    def update_properties(self, device: dict[str, Any], device_menu_config: dict[str, Any] | None) -> None:
+    def update_properties(self, device: dict[str, Any]) -> None:
         """Update the properties from device data."""
         self._attr_name = device["description"]["name"]
         
