@@ -37,10 +37,9 @@ async def async_setup_entry(
 ) -> bool:
     """Set up Tech climate based on config_entry."""
     api: Tech = hass.data[DOMAIN][entry.entry_id]["api"]
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator: TechUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
     try:               
-        await coordinator._async_update_data()
         zones = coordinator.get_zones()
 
         async_add_entities(

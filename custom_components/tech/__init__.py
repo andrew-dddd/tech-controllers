@@ -9,7 +9,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.typing import ConfigType
-from tech_update_coordinator import TechUpdateCoordinator
+from custom_components.tech.tech_update_coordinator import TechUpdateCoordinator
 
 from .const import DOMAIN
 from .tech import Tech
