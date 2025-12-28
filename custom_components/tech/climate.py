@@ -11,6 +11,9 @@ from homeassistant.components.climate import (
     HVACMode,
     HVACAction    
 )
+
+from homeassistant.components.select import SelectEntity
+
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     UnitOfTemperature,
@@ -60,10 +63,9 @@ async def async_setup_entry(
         return False
     
 
-class TechHub(CoordinatorEntity, ClimateEntity):
-
-    _attr_supported_features = ClimateEntityFeature.PRESET_MODE
-    _attr_preset_modes = DEFAULT_PRESETS
+class TechHub(CoordinatorEntity, SelectEntity):    
+    _attr_options = DEFAULT_PRESETS
+    _attr_current_option: str | None = None
 
     def __init__(self, hub, coordinator, api: Tech) -> None:
         """Initialize the Tech Hub device."""
@@ -83,7 +85,7 @@ class TechHub(CoordinatorEntity, ClimateEntity):
         
         # Initialize attributes that will be updated
         self._attr_name: str | None = hub["name"]
-        self._attr_preset_mode: str | None = None
+        self._attr_current_option: str | None = None
         
         self.update_properties(coordinator.get_menu())
         
@@ -99,22 +101,22 @@ class TechHub(CoordinatorEntity, ClimateEntity):
 
         if heating_mode is not None:
             if heating_mode["duringChange"] == "t":
-                self._attr_preset_modes = [CHANGE_PRESET]
+                self._attr_options = [CHANGE_PRESET]
                 self._attr_preset_mode = CHANGE_PRESET
             else:
-                self._attr_preset_modes = DEFAULT_PRESETS
+                self._attr_options = DEFAULT_PRESETS
                 heating_mode_id = heating_mode["params"]["value"]
-                self._attr_preset_mode = self.map_heating_mode_id_to_name(heating_mode_id)
+                self._attr_current_option = self.map_heating_mode_id_to_name(heating_mode_id)
         else:
             _LOGGER.warning("Heating mode menu not found for Tech zone %s", self._attr_name)
     
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
+    async def async_select_option(self, option: str) -> None:
         try:
-            if self._attr_preset_mode == CHANGE_PRESET:
+            if self._attr_current_option == CHANGE_PRESET:
                 _LOGGER.debug("Preset mode change already in progress for %s", self._attr_name)
                 return
             
-            preset_mode_id = DEFAULT_PRESETS.index(preset_mode)
+            preset_mode_id = DEFAULT_PRESETS.index(option)
             await self._api.set_module_menu(
                 self._udid,
                 "mu",
@@ -122,15 +124,15 @@ class TechHub(CoordinatorEntity, ClimateEntity):
                 preset_mode_id
             )
 
-            self._attr_preset_modes = [CHANGE_PRESET]
-            self._attr_preset_mode = CHANGE_PRESET
+            self._attr_options = [CHANGE_PRESET]
+            self._attr_current_option = CHANGE_PRESET
 
             await self.coordinator.async_request_refresh()
         except Exception as ex:
             _LOGGER.error(
                 "Failed to set preset mode for %s to %s: %s",
                 self._attr_name,
-                preset_mode,
+                option,
                 ex
             )
 
@@ -160,7 +162,7 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = SUPPORT_HVAC
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.TARGET_HUMIDITY
+    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
 
     def __init__(self, device: dict[str, Any], coordinator, api: Tech) -> None:
         """Initialize the Tech device."""
