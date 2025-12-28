@@ -85,7 +85,6 @@ class TechHub(CoordinatorEntity, SelectEntity):
         
         # Initialize attributes that will be updated
         self._attr_name: str | None = hub["name"]
-        self._attr_current_option: str | None = None
         
         self.update_properties(coordinator.get_menu())
         
@@ -102,7 +101,7 @@ class TechHub(CoordinatorEntity, SelectEntity):
         if heating_mode is not None:
             if heating_mode["duringChange"] == "t":
                 self._attr_options = [CHANGE_PRESET]
-                self._attr_preset_mode = CHANGE_PRESET
+                self._attr_current_option = CHANGE_PRESET
             else:
                 self._attr_options = DEFAULT_PRESETS
                 heating_mode_id = heating_mode["params"]["value"]
