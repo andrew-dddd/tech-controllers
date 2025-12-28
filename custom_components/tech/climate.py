@@ -64,7 +64,7 @@ async def async_setup_entry(
     
 
 class TechHub(CoordinatorEntity, SelectEntity):    
-    _attr_options = DEFAULT_PRESETS
+    _attr_options: list[str] = DEFAULT_PRESETS
     _attr_current_option: str | None = None
 
     def __init__(self, hub, coordinator, api: Tech) -> None:
@@ -91,7 +91,7 @@ class TechHub(CoordinatorEntity, SelectEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""        
-        _LOGGER.debug("Coordinator update for zone %s", self._attr_name)
+        _LOGGER.debug("Coordinator update for hub %s", self._attr_name)
         self.update_properties(self.coordinator.get_menu())
         self.async_write_ha_state()
 
@@ -107,7 +107,7 @@ class TechHub(CoordinatorEntity, SelectEntity):
                 heating_mode_id = heating_mode["params"]["value"]
                 self._attr_current_option = self.map_heating_mode_id_to_name(heating_mode_id)
         else:
-            _LOGGER.warning("Heating mode menu not found for Tech zone %s", self._attr_name)
+            _LOGGER.warning("Heating mode menu not found for Tech hub %s", self._attr_name)
     
     async def async_select_option(self, option: str) -> None:
         try:
