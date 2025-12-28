@@ -9,6 +9,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.typing import ConfigType
+from tech_update_coordinator import TechUpdateCoordinator
 
 from .const import DOMAIN
 from .tech import Tech
@@ -40,12 +41,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Store an API object for your platforms to access
     hass.data.setdefault(DOMAIN, {})
-    http_session = aiohttp_client.async_get_clientsession(hass)
-    hass.data[DOMAIN][entry.entry_id] = Tech(
+    http_session = aiohttp_client.async_get_clientsession(hass)   
+    api = Tech(
         http_session,
         entry.data["user_id"],
         entry.data["token"]
     )
+
+    coordinator = TechUpdateCoordinator(hass, entry, api, entry.data["module"]["udid"])
+    await coordinator._async_update_data()
+
+    hass.data[DOMAIN][entry.entry_id]["api"] = api
+    hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
 
     # Use async_forward_entry_setups instead of async_forward_entry_setup
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

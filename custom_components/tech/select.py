@@ -30,12 +30,9 @@ async def async_setup_entry(
 ) -> bool:
     """Set up Tech climate based on config_entry."""
     api: Tech = hass.data[DOMAIN][entry.entry_id]
-    udid: str = entry.data["module"]["udid"]    
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
-    try:               
-        coordinator = TechUpdateCoordinator(hass, entry, api, udid)
-        await coordinator._async_update_data()
-
+    try:
         async_add_entities(
             [TechHub(entry.data["module"], coordinator, api)]
         )
