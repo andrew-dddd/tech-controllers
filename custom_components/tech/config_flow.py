@@ -30,7 +30,7 @@ async def validate_input(hass: core.HomeAssistant, data):
     if not await api.authenticate(data["username"], data["password"]):
         raise InvalidAuth
     modules = await api.list_modules()
-    
+
     # If you cannot connect:
     # throw CannotConnect
     # If the authentication is wrong:
@@ -52,7 +52,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("Context: " + str(self.context))                
+                _LOGGER.debug("Context: " + str(self.context))
                 validated_input = await validate_input(self.hass, user_input)
 
                 modules: list[UserModule] = self._create_modules_array(validated_input=validated_input)
@@ -63,7 +63,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if len(modules) > 1:
                     for module in modules[1:len(modules)]:
                         await self.hass.config_entries.async_add(self._create_config_entry(module=module))
-                    
+
                 return self.async_create_entry(title=modules[0].module_title, data=modules[0])
             except CannotConnect:
                 errors["base"] = "cannot_connect"
@@ -76,16 +76,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
-    
-    #async def async_step_reauth(self, user_input=None):
-    #    """Handle reauth step."""
-        #if user_input is None:
-        #    return self.async_show_form(
-        #        step_id="reauth_confirm",
-        #        data_schema=DATA_SCHEMA,
-        #    )
-        
-        #return await self.async_step_user()
 
     def _create_config_entry(self, module: UserModule) -> ConfigEntry:
         return ConfigEntry(
