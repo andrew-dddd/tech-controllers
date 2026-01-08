@@ -34,10 +34,10 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
-    """Set up Tech climate based on config_entry."""
+    """Set up Tech select based on config_entry."""
     api: Tech = hass.data[DOMAIN][entry.entry_id]["api"]
     coordinator: TechUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    user_module: UserModule = entry.data["module"]
+    user_module: UserModule = entry.data
     
     try:
         async_add_entities(
@@ -46,7 +46,7 @@ async def async_setup_entry(
 
         return True
     except Exception as ex:
-        _LOGGER.error("Failed to set up Tech climate: %s", ex)
+        _LOGGER.error("Failed to set up Tech select: %s", ex)
         return False
 
 class TechHub(CoordinatorEntity, SelectEntity):    
