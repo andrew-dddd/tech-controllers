@@ -77,15 +77,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
     
-    async def async_step_reauth(self, user_input=None):
-        """Handle reauth step."""
-        if user_input is None:
-            return self.async_show_form(
-                step_id="reauth_confirm",
-                data_schema=DATA_SCHEMA,
-            )
+    #async def async_step_reauth(self, user_input=None):
+    #    """Handle reauth step."""
+        #if user_input is None:
+        #    return self.async_show_form(
+        #        step_id="reauth_confirm",
+        #        data_schema=DATA_SCHEMA,
+        #    )
         
-        return await self.async_step_user()
+        #return await self.async_step_user()
 
     def _create_config_entry(self, module: UserModule) -> ConfigEntry:
         return ConfigEntry(
