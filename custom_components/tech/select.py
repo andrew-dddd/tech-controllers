@@ -37,11 +37,11 @@ async def async_setup_entry(
     """Set up Tech select based on config_entry."""
     api: Tech = hass.data[DOMAIN][entry.entry_id]["api"]
     coordinator: TechUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    user_module: UserModule = entry.data
+    module_data = Module(**entry.data["module"])
     
     try:
         async_add_entities(
-            [TechHub(user_module.module, coordinator, api)]
+            [TechHub(module_data, coordinator, api)]
         )
 
         return True
