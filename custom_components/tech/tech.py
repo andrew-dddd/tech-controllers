@@ -6,7 +6,13 @@ import aiohttp
 import json
 import time
 import asyncio
+from typing import Type, TypeVar, overload
 from aiocache import Cache, cached
+from pydantic import BaseModel, TypeAdapter
+
+from .models import Module, ModuleData, ModuleMenuResponse, ZoneElement
+
+T = TypeVar("T", bound=BaseModel)
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -33,7 +39,13 @@ class Tech:
             self.authenticated = False
         self.zones = {}
     
-    async def get(self, request_path):
+    @overload
+    async def get(self, request_path: str) -> dict: ...
+    
+    @overload
+    async def get(self, request_path: str, response_type: Type[T]) -> T: ...
+    
+    async def get(self, request_path: str, response_type: Type[T] | None = None) -> dict | T:
         url = self.base_url + request_path
         _LOGGER.debug("Sending GET request: " + url)
         async with self.session.get(url, headers=self.headers) as response:
@@ -43,6 +55,9 @@ class Tech:
 
             data = await response.json()
             _LOGGER.debug(data)
+            
+            if response_type is not None:
+                return response_type.model_validate(data)
             return data
     
     async def post(self, request_path, post_data):
@@ -72,25 +87,24 @@ class Tech:
             }
         return result["authenticated"]
 
-    async def list_modules(self):
+    async def list_modules(self) -> list[Module]:
         if self.authenticated:
             path = "users/" + self.user_id + "/modules"
             result = await self.get(path)
+            return TypeAdapter(list[Module]).validate_python(result)
         else:
             raise TechError(401, "Unauthorized")
-        return result
     
-    async def get_module_data(self, module_udid):
+    async def get_module_data(self, module_udid) -> ModuleData:
         _LOGGER.debug("Getting module data..." + module_udid + ", " + self.user_id)
         if self.authenticated:
             path = "users/" + self.user_id + "/modules/" + module_udid
-            result = await self.get(path)
+            return await self.get(path, ModuleData)
         else:
             raise TechError(401, "Unauthorized")
-        return result
     
     @cached(ttl=10, cache=Cache.MEMORY)
-    async def get_module_zones(self, module_udid):
+    async def get_module_zones(self, module_udid) -> dict[int, ZoneElement]:
         """Returns Tech module zones either from cache or it will
         update all the cached values for Tech module assuming
         no update has occurred for at least the [update_interval].
@@ -103,11 +117,11 @@ class Tech:
         Dictionary of zones indexed by zone ID.
         """
         result = await self.get_module_data(module_udid)
-        zones = result["zones"]["elements"]
-        zones = list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
-        return { zone["zone"]["id"]: zone for zone in zones } 
+        zones = result.zones.elements
+        zones = list(filter(lambda e: e.zone.zoneState != "zoneUnregistered", zones))
+        return { zone.zone.id: zone for zone in zones } 
     
-    async def get_zone(self, module_udid, zone_id):
+    async def get_zone(self, module_udid, zone_id) -> ZoneElement:
         """Returns zone from Tech API cache.
 
         Parameters:
@@ -115,7 +129,7 @@ class Tech:
         zone_id (int): The Tech module zone ID.
 
         Returns:
-        Dictionary of zone.
+        ZoneElement object.
         """
         zones = await self.get_module_zones(module_udid)
         return zones[zone_id]
@@ -178,7 +192,7 @@ class Tech:
         return result
 
     @cached(ttl=10, cache=Cache.MEMORY)
-    async def get_module_menu(self, module_udid, menu_type):
+    async def get_module_menu(self, module_udid, menu_type) -> ModuleMenuResponse:
         """ Gets module menu options
        
         Parameters:
@@ -186,16 +200,15 @@ class Tech:
         menu_type (string): Menu type, one of the following: "MU", "MI", "MS", "MP"
 
         Return:
-        JSON object with results
+        ModuleMenuResponse object with results
         """
 
         _LOGGER.debug("Getting module menu: %s", menu_type)
         if self.authenticated:
             path = f"users/{self.user_id}/modules/{module_udid}/menu/{menu_type}"
-            result = await self.get(path)       
+            return await self.get(path, ModuleMenuResponse)
         else:
             raise TechError(401, "Unauthorized")
-        return result
 
     async def set_module_menu(self, module_udid, menu_type, menu_id, menu_value):
         """ Sets module menu value

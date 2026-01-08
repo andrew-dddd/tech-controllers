@@ -1,4 +1,5 @@
 """Config flow for Tech Sterowniki integration."""
+from typing import Any
 import logging, uuid
 import voluptuous as vol
 from homeassistant import config_entries, core, exceptions
@@ -7,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN  # pylint:disable=unused-import
 from .tech import Tech
 from types import MappingProxyType
+from models.module import Module, UserModule
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,7 +55,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("Context: " + str(self.context))                
                 validated_input = await validate_input(self.hass, user_input)
 
-                modules = self._create_modules_array(validated_input=validated_input)
+                modules: list[UserModule] = self._create_modules_array(validated_input=validated_input)
 
                 if len(modules) == 0:
                     return self.async_abort("no_modules")
@@ -62,7 +64,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     for module in modules[1:len(modules)]:
                         await self.hass.config_entries.async_add(self._create_config_entry(module=module))
                     
-                return self.async_create_entry(title=modules[0]["version"], data=modules[0])
+                return self.async_create_entry(title=modules[0].module_title, data=modules[0])
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
@@ -85,10 +87,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         
         return await self.async_step_user()
 
-    def _create_config_entry(self, module: dict) -> ConfigEntry:
+    def _create_config_entry(self, module: UserModule) -> ConfigEntry:
         return ConfigEntry(
             data=module,            
-            title=module["version"],
+            title=module.module_title,
             entry_id=uuid.uuid4().hex,
 	        discovery_keys=MappingProxyType({}),
             domain=DOMAIN,
@@ -99,19 +101,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             unique_id=None,
 	        subentries_data=[])
     
-    def _create_modules_array(self, validated_input: dict) -> [dict]:
+    def _create_modules_array(self, validated_input: dict) -> list[UserModule]:
         return [
             self._create_module_dict(validated_input, module_dict)
             for module_dict in validated_input["modules"]
         ]
 
-    def _create_module_dict(self, validated_input: dict, module_dict: dict) -> dict:
-        return {   
-            "user_id": validated_input["user_id"],
-            "token": validated_input["token"],
-            "module": module_dict,
-            "version": module_dict["version"] + ": " + module_dict["name"]
-        }
+    def _create_module_dict(self, validated_input: dict, module: Module) -> UserModule:
+        return UserModule(   
+            user_id=validated_input["user_id"],
+            token=validated_input["token"],
+            module=module,
+            module_title=module.version + ": " + module.name
+        )
 
 
 class CannotConnect(exceptions.HomeAssistantError):

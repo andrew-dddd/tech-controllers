@@ -6,6 +6,8 @@ from typing import Any
 
 import async_timeout
 
+from custom_components.tech.models.module import ZoneElement
+from custom_components.tech.models.module_menu import ModuleMenuResponse
 from custom_components.tech.tech import (Tech, TechError)
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import (
@@ -37,11 +39,11 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
         """Return the latest data."""
         return self.data
     
-    def get_zones(self) -> dict[str, Any]:
+    def get_zones(self) -> dict[int, ZoneElement]:
         """Return the latest zones data."""
         return self.data["zones"]
     
-    def get_menu(self) -> dict[str, Any] | None:
+    def get_menu(self) -> ModuleMenuResponse | None:
         """Return the latest menu data."""
         return self.data["menu"]
 
@@ -59,11 +61,11 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
                 zones = await self.tech_api.get_module_zones(self.udid)
                 menu = await self.tech_api.get_module_menu(self.udid, "mu")
 
-                if menu["status"] != "success":
+                if menu.status != "success":
                     _LOGGER.warning("Failed to get menu config for Tech module %s, response: %s", self.udid, menu)
                     menu = None
 
-                self.data = {"zones": zones, "menu": menu["data"] if menu else None}
+                self.data = {"zones": zones, "menu": menu.data if menu else None}
                 return self.data                            
         except TechError as err:       
             raise UpdateFailed(f"Error communicating with API: {err}")  

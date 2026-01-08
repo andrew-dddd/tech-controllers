@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Final
 
+from custom_components.tech.models.module import ZoneElement
 from custom_components.tech.tech_update_coordinator import TechUpdateCoordinator
 from homeassistant.components.climate import (
     ClimateEntity,
@@ -63,18 +64,18 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     _attr_preset_modes = DEFAULT_PRESETS
 
-    def __init__(self, device: dict[str, Any], coordinator, api: Tech) -> None:
+    def __init__(self, device: ZoneElement, coordinator, api: Tech) -> None:
         """Initialize the Tech device."""
         self._api = api
-        self._id: int = device["zone"]["id"]
-        self._zone_mode_id = device["mode"]["id"]
+        self._id: int = device.zone.id
+        self._zone_mode_id = device.mode.id
         self._udid = coordinator.udid
         
         # Set unique_id first as it's required for entity registry
         self._attr_unique_id = f"{self._udid}_{self._id}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._attr_unique_id)},
-            "name": device["description"]["name"],
+            "name": device.description.name,
             "manufacturer": "Tech",
         }
 
@@ -91,21 +92,21 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         
         self.update_properties(coordinator.get_zones()[self._id])
 
-    def update_properties(self, device: dict[str, Any]) -> None:
+    def update_properties(self, device: ZoneElement) -> None:
         """Update the properties from device data."""
-        self._attr_name = device["description"]["name"]
+        self._attr_name = device.description.name
         
-        zone = device["zone"]
-        if zone["setTemperature"] is not None:
-            self._attr_target_temperature = zone["setTemperature"] / 10
+        zone = device.zone
+        if zone.setTemperature is not None:
+            self._attr_target_temperature = zone.setTemperature / 10
         
-        if zone["currentTemperature"] is not None:
-            self._attr_current_temperature = zone["currentTemperature"] / 10
+        if zone.currentTemperature is not None:
+            self._attr_current_temperature = zone.currentTemperature / 10
             
-        if zone["humidity"] is not None:
-            self._attr_current_humidity = zone["humidity"]
+        if zone.humidity is not None:
+            self._attr_current_humidity = zone.humidity
             
-        state = zone["flags"]["relayState"]
+        state = zone.flags.relayState
         if state == "on":
             self._attr_hvac_action = HVACAction.HEATING
         elif state == "off":
@@ -113,7 +114,7 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
         else:
             self._attr_hvac_action = HVACAction.OFF        
         
-        mode = zone["zoneState"]
+        mode = zone.zoneState
         self._attr_hvac_mode = HVACMode.HEAT if mode in ["zoneOn", "noAlarm"] else HVACMode.OFF
     
     @callback
@@ -137,32 +138,6 @@ class TechThermostat(CoordinatorEntity, ClimateEntity):
                     temperature,
                     ex
                 )
-    
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
-        try:
-            if self._attr_preset_mode == CHANGE_PRESET:
-                _LOGGER.debug("Preset mode change already in progress for %s", self._attr_name)
-                return
-            
-            preset_mode_id = DEFAULT_PRESETS.index(preset_mode)
-            await self._api.set_module_menu(
-                self._udid,
-                "mu",
-                1000,
-                preset_mode_id
-            )
-
-            self._attr_preset_modes = [CHANGE_PRESET]
-            self._attr_preset_mode = CHANGE_PRESET
-
-            await self.coordinator.async_request_refresh()
-        except Exception as ex:
-            _LOGGER.error(
-                "Failed to set preset mode for %s to %s: %s",
-                self._attr_name,
-                preset_mode,
-                ex
-            )
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target hvac mode."""
