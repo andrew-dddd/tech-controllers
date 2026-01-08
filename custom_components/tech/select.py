@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from .models.module import Module, UserModule
-from .models.module_menu import MenuElement, MenuElement, ModuleMenuData, ModuleMenuResponse
+from .models.module_menu import MenuElement, MenuElement, ModuleMenuData
 from .tech_update_coordinator import TechUpdateCoordinator
 
 from homeassistant.components.select import SelectEntity
@@ -53,7 +53,7 @@ class TechHub(CoordinatorEntity, SelectEntity):
     _attr_options: list[str] = list(DEFAULT_PRESETS.values())
     _attr_current_option: str | None = None
 
-    def __init__(self, hub: Module, coordinator: TechUpdateCoordinator, api: Tech) -> None:
+    def __init__(self, module: Module, coordinator: TechUpdateCoordinator, api: Tech) -> None:
         """Initialize the Tech Hub device."""
         self._api = api
         self._udid = coordinator.udid
@@ -63,14 +63,14 @@ class TechHub(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = self._udid
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._attr_unique_id)},
-            "name": hub.name,
+            "name": module.name,
             "manufacturer": "Tech",
         }
 
         super().__init__(coordinator, context=self._udid)
         
         # Initialize attributes that will be updated
-        self._attr_name: str | None = hub.name
+        self._attr_name: str | None = module.name
         
         self.update_properties(coordinator.get_menu())
         
@@ -81,8 +81,8 @@ class TechHub(CoordinatorEntity, SelectEntity):
         self.update_properties(self.coordinator.get_menu())
         self.async_write_ha_state()
 
-    def update_properties(self, device_menu_config: ModuleMenuResponse | None) -> None:
-        heating_mode = self.get_heating_mode_from_menu_config(device_menu_config.data) if device_menu_config else None
+    def update_properties(self, module_menu_data: ModuleMenuData | None) -> None:
+        heating_mode = self.get_heating_mode_from_menu_config(module_menu_data) if module_menu_data else None
         _LOGGER.debug("Updating heating mode for hub %s: %s", self._attr_name, heating_mode)
 
         if heating_mode is not None:            
@@ -127,13 +127,12 @@ class TechHub(CoordinatorEntity, SelectEntity):
 
     def get_heating_mode_from_menu_config(self, menu_config: ModuleMenuData) -> MenuElement | None:
         """Get current preset mode from menu config."""
-        element = None
+
         heating_mode_menu_id = 1000
         for e in menu_config.elements:
             if e.id == heating_mode_menu_id:
-                element = e
-                break   
-        return element
+                return e                
+        return None
     
     def map_heating_mode_id_to_name(self, heating_mode_id) -> str:
         """Map heating mode id to preset mode name."""

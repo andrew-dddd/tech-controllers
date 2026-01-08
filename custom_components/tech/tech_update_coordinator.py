@@ -6,9 +6,9 @@ from typing import Any
 
 import async_timeout
 
-from .models.module import ZoneElement
-from .models.module_menu import ModuleMenuResponse
-from .tech import (Tech, TechError)
+from custom_components.tech.models.module import ZoneElement
+from custom_components.tech.models.module_menu import ModuleMenuData
+from custom_components.tech.tech import (Tech, TechError)
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
@@ -43,7 +43,7 @@ class TechUpdateCoordinator(DataUpdateCoordinator):
         """Return the latest zones data."""
         return self.data["zones"]
     
-    def get_menu(self) -> ModuleMenuResponse | None:
+    def get_menu(self) -> ModuleMenuData | None:
         """Return the latest menu data."""
         return self.data["menu"]
 
