@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN  # pylint:disable=unused-import
 from .tech import Tech
 from types import MappingProxyType
-from models.module import Module, UserModule
+from .models.module import Module, UserModule
 
 _LOGGER = logging.getLogger(__name__)
 

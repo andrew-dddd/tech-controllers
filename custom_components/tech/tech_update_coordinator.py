@@ -6,9 +6,9 @@ from typing import Any
 
 import async_timeout
 
-from custom_components.tech.models.module import ZoneElement
-from custom_components.tech.models.module_menu import ModuleMenuResponse
-from custom_components.tech.tech import (Tech, TechError)
+from .models.module import ZoneElement
+from .models.module_menu import ModuleMenuResponse
+from .tech import (Tech, TechError)
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,

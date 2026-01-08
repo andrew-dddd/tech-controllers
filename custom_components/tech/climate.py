@@ -4,8 +4,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Final
 
-from custom_components.tech.models.module import ZoneElement
-from custom_components.tech.tech_update_coordinator import TechUpdateCoordinator
+from .models.module import ZoneElement
+from .tech_update_coordinator import TechUpdateCoordinator
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,

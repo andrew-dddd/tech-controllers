@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from custom_components.tech.models.module import Module, UserModule
-from custom_components.tech.models.module_menu import MenuElement, MenuElement, ModuleMenuData, ModuleMenuResponse
-from custom_components.tech.tech_update_coordinator import TechUpdateCoordinator
+from .models.module import Module, UserModule
+from .models.module_menu import MenuElement, MenuElement, ModuleMenuData, ModuleMenuResponse
+from .tech_update_coordinator import TechUpdateCoordinator
 
 from homeassistant.components.select import SelectEntity
 
