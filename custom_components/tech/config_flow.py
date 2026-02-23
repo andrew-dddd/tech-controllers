@@ -65,7 +65,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     for module in modules[1:len(modules)]:
                         await self.hass.config_entries.async_add(self._create_config_entry(module=module))
 
-                return self.async_create_entry(title=modules[0].module_title, data=modules[0])
+                return self.async_create_entry(title=modules[0].module_title, data=modules[0].dict())
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
@@ -77,31 +77,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
-    
-    async def async_step_reauth(self, user_input=None):
+
+#    async def async_step_reauth(self, user_input=None):
         """Handle reauth step."""
-        if user_input is None:
-            return self.async_show_form(
-                step_id="reauth_confirm",
-                data_schema=DATA_SCHEMA,
-            )
-        
-        return await self.async_step_user()
+#        if user_input is None:
+#            return self.async_show_form(
+#                step_id="reauth_confirm",
+#                data_schema=DATA_SCHEMA,
+#            )
+
+#        return await self.async_step_user()
 
     def _create_config_entry(self, module: UserModule) -> ConfigEntry:
         return ConfigEntry(
-            data=module,            
+            data=module.dict(),
             title=module.module_title,
             entry_id=uuid.uuid4().hex,
-	        discovery_keys=MappingProxyType({}),
+            discovery_keys=MappingProxyType({}),
             domain=DOMAIN,
             version=ConfigFlow.VERSION,
             minor_version=ConfigFlow.MINOR_VERSION,
             source=ConfigFlow.CONNECTION_CLASS,
-	        options={},
+            options={},
             unique_id=None,
-	        subentries_data=[])
-    
+            subentries_data=[])
+
     def _create_modules_array(self, validated_input: dict) -> list[UserModule]:
         return [
             self._create_module_dict(validated_input, module_dict)
@@ -109,7 +109,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         ]
 
     def _create_module_dict(self, validated_input: dict, module: Module) -> UserModule:
-        return UserModule(   
+        return UserModule(
             user_id=validated_input["user_id"],
             token=validated_input["token"],
             module=module,
