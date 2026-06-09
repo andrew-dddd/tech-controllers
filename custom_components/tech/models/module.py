@@ -30,6 +30,8 @@ class UserModule(BaseModel):
     token: str
     module: Module
     module_title: str
+    username: str
+    password: str
 
 # Models for get_module_data response
 
